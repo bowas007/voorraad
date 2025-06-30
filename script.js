@@ -401,7 +401,126 @@ class StockCounter {
         minusBtn.addEventListener('click', () => this.updateCounter(product.id, -1));
         plusBtn.addEventListener('click', () => this.updateCounter(product.id, 1));
 
+        // Add long press functionality to reset product when it's counted
+        this.addLongPressReset(div, product);
+
         return div;
+    }
+
+    // Add long press functionality to reset a product
+    addLongPressReset(element, product) {
+        let pressTimer = null;
+        let isLongPress = false;
+        const longPressDelay = 800; // 800ms for long press
+
+        const startPress = (e) => {
+            // Don't start long press if clicking on buttons
+            if (e.target.closest('.counter-btn')) {
+                return;
+            }
+
+            // Only allow long press reset if product is counted (green)
+            if (product.count === null || product.count === 0) {
+                return;
+            }
+
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                // Visual feedback for long press
+                element.classList.add('long-press');
+                
+                // Reset the product
+                this.resetProduct(product.id);
+                
+                // Reset visual feedback after a short delay
+                setTimeout(() => {
+                    element.classList.remove('long-press');
+                }, 200);
+            }, longPressDelay);
+        };
+
+        const endPress = (e) => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+            
+            // Reset visual feedback if not a long press
+            if (!isLongPress) {
+                element.classList.remove('long-press');
+            }
+        };
+
+        const cancelPress = (e) => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+            element.classList.remove('long-press');
+        };
+
+        // Touch events for mobile
+        element.addEventListener('touchstart', startPress, { passive: true });
+        element.addEventListener('touchend', endPress, { passive: true });
+        element.addEventListener('touchcancel', cancelPress, { passive: true });
+
+        // Mouse events for desktop
+        element.addEventListener('mousedown', startPress);
+        element.addEventListener('mouseup', endPress);
+        element.addEventListener('mouseleave', cancelPress);
+
+        // Prevent context menu on long press
+        element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // Prevent long press from interfering with button clicks
+        const buttons = element.querySelectorAll('.counter-btn');
+        buttons.forEach(button => {
+            button.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+            });
+            button.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: true });
+        });
+    }
+
+    // Reset a single product to 0
+    resetProduct(productId) {
+        const product = this.products.find(p => p.id === productId);
+        if (!product) return;
+
+        // Only reset if product is counted
+        if (product.count !== null && product.count > 0) {
+            product.count = null; // Reset to not counted state
+            
+            // Update display
+            const counterDisplay = document.querySelector(`[data-product-id="${productId}"].counter-display`);
+            if (counterDisplay) {
+                counterDisplay.textContent = '-';
+                counterDisplay.classList.add('changed');
+                setTimeout(() => counterDisplay.classList.remove('changed'), 300);
+            }
+
+            // Update product-item checked class
+            const productItem = document.querySelector(`.product-item[data-product-id="${productId}"]`);
+            if (productItem) {
+                productItem.classList.remove('checked');
+            }
+
+            // Update minus button state
+            const minusBtn = document.querySelector(`[data-product-id="${productId}"].btn-minus`);
+            if (minusBtn) {
+                minusBtn.disabled = false;
+            }
+
+            // Play sound and save
+            this.playClickSound();
+            this.saveProducts();
+            this.updateSummary();
+        }
     }
 
     // Play click sound
@@ -576,19 +695,19 @@ class StockCounter {
             return;
         }
 
-        // Helper to generate compact page numbers with ellipsis
+        // Helper to generate ultra-compact page numbers with ellipsis
         function getPageList(current, total) {
             const pages = [];
-            if (total <= 7) {
+            if (total <= 3) {
                 for (let i = 1; i <= total; i++) pages.push(i);
             } else {
-                if (current > 3) pages.push(1);
-                if (current > 4) pages.push('...');
-                for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
-                    pages.push(i);
+                if (current === 1) {
+                    pages.push(1, 2, '...', total);
+                } else if (current === total) {
+                    pages.push(1, '...', total - 1, total);
+                } else {
+                    pages.push(1, '...', current, '...', total);
                 }
-                if (current < total - 3) pages.push('...');
-                if (current < total - 2) pages.push(total);
             }
             return pages;
         }
@@ -795,15 +914,45 @@ class StockCounter {
             alert('Alles is op voorraad!');
             return;
         }
-        const csvContent = [
-            'Product,Unit,Target,Actual,Order',
-            ...toOrder.map(p => `"${p.name}","${p.unit || ''}",${p.target},${p.count || 0},${p.target - (p.count || 0)}`)
-        ].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        
+        // Prepare data for Excel export
+        const excelData = [
+            ['Product', 'Unit', 'Target', 'Actual', 'Order'],
+            ...toOrder.map(p => [
+                p.name || '',
+                p.unit || '',
+                p.target || 0,
+                p.count || 0,
+                p.target - (p.count || 0)
+            ])
+        ];
+        
+        // Create workbook and worksheet
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+        
+        // Set column widths
+        const columnWidths = [
+            { wch: 30 }, // Product
+            { wch: 15 }, // Unit
+            { wch: 10 }, // Target
+            { wch: 10 }, // Actual
+            { wch: 10 }  // Order
+        ];
+        worksheet['!cols'] = columnWidths;
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bestellijst');
+        
+        // Generate Excel file
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        // Download the file
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `bestellijst-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `bestellijst-${new Date().toISOString().slice(0, 10)}.xlsx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

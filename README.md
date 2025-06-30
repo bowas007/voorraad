@@ -11,6 +11,10 @@ A simple, mobile-friendly web app for counting inventory in your bar or restaura
 - **Export Data**: Download your counts as a CSV file
 - **No Login Required**: Simple internal use - no accounts needed
 - **Responsive Design**: Works great on phones, tablets, and desktop
+- **Bestellijst**: Krijg automatisch advies over wat je moet bestellen
+- **Excel Import/Export**: Upload en exporteer producten via Excel bestanden
+- **Offline functionaliteit**: Werkt ook zonder internetverbinding
+- **Geluid**: Optionele geluidseffecten bij het tellen
 
 ## 🚀 Quick Start
 
@@ -153,6 +157,64 @@ This is a simple, self-contained app. If you need help:
 ## 📄 License
 
 This project is open source and available under the MIT License. Feel free to modify and use it for your business!
+
+## Excel Import/Export
+
+### Producten importeren
+
+1. Ga naar "Manage Products" in de hoofdpagina
+2. Klik op "Download Template" om een voorbeeld Excel bestand te downloaden
+3. Vul je producten in volgens het template:
+   - **Name**: Naam van het product
+   - **Category**: Categorie (bijv. "Soft Drinks", "Alcoholic", "Food")
+   - **Unit**: Eenheid (bijv. "bottles", "crates", "kegs")
+   - **Target**: Doelvoorraad (aantal)
+
+4. Klik op "Import Products (Excel)" en selecteer je Excel bestand
+5. Je producten worden automatisch geïmporteerd en samengevoegd met bestaande producten
+
+### Producten exporteren
+
+1. Ga naar "Manage Products"
+2. Klik op "Export Products (Excel)"
+3. Je krijgt een Excel bestand met alle huidige producten en hun tellingen
+
+### Bestellijst exporteren
+
+1. Klik op "Wat moet ik bestellen?" in de hoofdpagina
+2. Klik op "Exporteer Bestellijst (Excel)"
+3. Je krijgt een Excel bestand met alleen de producten die besteld moeten worden
+
+## Excel Bestandsformaat
+
+### Import Template
+```
+Name        | Category     | Unit     | Target
+Cola bottles| Soft Drinks  | bottles  | 50
+Beer bottles| Alcoholic    | bottles  | 100
+```
+
+### Export Format
+```
+Name        | Category     | Unit     | Target | Current Count
+Cola bottles| Soft Drinks  | bottles  | 50     | 25
+Beer bottles| Alcoholic    | bottles  | 100    | 80
+```
+
+### Bestellijst Format
+```
+Product     | Unit     | Target | Actual | Order
+Cola bottles| bottles  | 50     | 25     | 25
+Beer bottles| bottles  | 100    | 80     | 20
+```
+
+## Tips
+
+- Gebruik de categorie filters om je te focussen op specifieke gebieden
+- Gebruik de zoekfunctie om snel producten te vinden
+- Druk op ESC om de zoekopdracht te wissen
+- Je data wordt automatisch opgeslagen in je browser
+- Gebruik de Excel export om backups te maken van je data
 
 ---
 
