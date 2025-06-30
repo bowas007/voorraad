@@ -659,6 +659,9 @@
                     <button class="action-btn" id="downloadTemplate">
                         <i class="fas fa-file-excel"></i> Download Template
                     </button>
+                    <button class="action-btn btn-danger" id="deleteAllProducts" style="margin-left:8px;">
+                        <i class="fas fa-exclamation-triangle"></i> Delete All Products
+                    </button>
                     <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;">
                 </div>
             </div>
@@ -794,6 +797,10 @@
 
                 document.getElementById('downloadTemplate').addEventListener('click', () => {
                     this.downloadTemplate();
+                });
+
+                document.getElementById('deleteAllProducts').addEventListener('click', () => {
+                    this.deleteAllProducts();
                 });
 
                 // Collapsible functionality
@@ -1392,6 +1399,21 @@
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
+            }
+
+            deleteAllProducts() {
+                if (confirm('Are you sure you want to delete all products?')) {
+                    this.products = [];
+                    this.saveProducts();
+                    this.reconcileAndSaveAllCategories();
+                    this.reconcileAndSaveAllUnits();
+                    this.currentPage = 1;
+                    this.renderProducts();
+                    this.updateCategoryOptions();
+                    this.updateUnitOptions();
+                    this.renderCategoryList();
+                    this.renderUnitList();
+                }
             }
 
             renderPagination() {
